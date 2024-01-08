@@ -1,15 +1,16 @@
+import java.io.File;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.List;
-import java.io.File;
-import java.util.stream.Collectors;
-import java.util.Arrays;
+import java.net.ServerSocket;
+
 
 public class Server {
-    private static final String BASE_DIRECTORY = "/Users/veronika_snigur/Downloads/cw/course_work_parallel_computing";
     private static final int PORT = 12345;
+    private static final String BASE_DIRECTORY = "/Users/veronika_snigur/Downloads/cw/course_work_parallel_computing";
 
     public static void main(String[] args) {
         try (ServerSocket serverSocket = new ServerSocket(PORT)) {
@@ -33,11 +34,19 @@ public class Server {
                         .collect(Collectors.toList());
 
                 InvertedIndex invertedIndex = new InvertedIndex();
-                invertedIndex.buildIndex(absoluteFilePaths);
+
+                if (invertedIndex.isIndexed()) {
+                    System.out.println("Files are already indexed.");
+                } else {
+                    System.out.println("Indexing files...");
+                    invertedIndex.buildIndex(absoluteFilePaths);
+                    System.out.println("Files indexed successfully.");
+                }
 
                 output.writeObject(invertedIndex);
 
-                clientSocket.close();
+                // Note: Do not close the client socket inside the loop
+                // clientSocket.close();
             }
         } catch (Exception e) {
             e.printStackTrace();

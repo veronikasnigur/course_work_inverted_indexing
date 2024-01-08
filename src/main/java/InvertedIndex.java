@@ -10,11 +10,12 @@ import java.io.IOException;
 
 public class InvertedIndex implements Serializable {
     private static final long serialVersionUID = 1L;
-
     private Map<String, List<IndexEntry>> invertedIndex;
+    private boolean isIndexed;
 
     public InvertedIndex() {
         invertedIndex = new HashMap<>();
+        isIndexed = false;
     }
 
     public void buildIndex(List<String> files) {
@@ -33,6 +34,12 @@ public class InvertedIndex implements Serializable {
                 e.printStackTrace();
             }
         }
+
+        isIndexed = true;
+    }
+
+    public boolean isIndexed() {
+        return isIndexed;
     }
 
     public List<IndexEntry> search(String query) {
