@@ -57,8 +57,20 @@ public class Server {
                 // Read the search query from the client
                 String query = (String) input.readObject();
 
+                // Check if the client wants to continue searching
+                if ("no".equalsIgnoreCase(query.trim())) {
+                    System.out.println("Client opted out of further search. Closing connection.");
+                    break;  // Exit the loop and close the connection
+                }
+
                 // Get the search results using the provided search query
                 List<IndexEntry> searchResults = invertedIndex.getSearchResults(query);
+
+                if (!searchResults.isEmpty()) {
+                    System.out.println("Files for query '" + query + "' found successfully.");
+                } else {
+                    System.out.println("No files found for query '" + query + "'.");
+                }
 
                 // Wrap the results in a SearchResultWrapper
                 SearchResultWrapper resultWrapper = new SearchResultWrapper(searchResults);
