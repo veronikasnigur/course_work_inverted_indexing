@@ -19,6 +19,7 @@ public class InvertedIndex implements Serializable {
     }
 
     public void buildIndex(List<String> files) {
+//        long startTime = System.currentTimeMillis();
         for (String filePath : files) {
             try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
                 String line;
@@ -37,7 +38,7 @@ public class InvertedIndex implements Serializable {
                 e.printStackTrace();
             }
         }
-
+//        System.out.println("Time for execution with single thread: "+ (System.currentTimeMillis() - startTime)+" milliseconds\n");
         isIndexed = true;
     }
 

@@ -63,6 +63,7 @@ public class Server {
                 System.out.println("Files are already indexed.");
             } else {
                 System.out.println("Indexing files...");
+                long startTime = System.currentTimeMillis();
 
                 // Divide the list of files among available threads
                 int filesPerThread = absoluteFilePaths.size() / numThreads;
@@ -79,6 +80,7 @@ public class Server {
                         System.out.println("Indexing files in thread " + Thread.currentThread().getId() +
                                 " from index " + startIndex + " to " + (endIndex - 1));
                         invertedIndex.buildIndex(subList);
+                        System.out.println("Time for execution with thread "+ Thread.currentThread().getId() + ":\t" + (System.currentTimeMillis() - startTime)+" milliseconds");
                         return null;
                     });
                 }
@@ -106,11 +108,12 @@ public class Server {
                 List<IndexEntry> searchResults = invertedIndex.getSearchResults(query);
 
                 if (!searchResults.isEmpty()) {
-                    System.out.println("Files for query '" + query + "' found successfully. Results:");
+                    System.out.println("Files for query '" + query + "' found successfully. Results are sent to server:");
 
                     // Print search results
                     for (IndexEntry entry : searchResults) {
-                        System.out.println(entry.getFilePath());
+                        //потрібно було для перевірки правильності індексації, щоб відслідкувати знайдені співпадіння
+                        // System.out.println(entry.getFilePath());
                     }
                 } else {
                     System.out.println("No files found for query '" + query + "'.");
