@@ -1,12 +1,11 @@
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
-
 
 public class InvertedIndex implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -42,7 +41,7 @@ public class InvertedIndex implements Serializable {
         return isIndexed;
     }
 
-    public List<IndexEntry> search(String query) {
+    public List<IndexEntry> getSearchResults(String query) {
         return invertedIndex.getOrDefault(query, new LinkedList<>());
     }
 }

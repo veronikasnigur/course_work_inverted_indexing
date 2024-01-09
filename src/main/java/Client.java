@@ -2,34 +2,37 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.util.List;
-import java.util.Arrays;
 import java.util.Scanner;
 
 public class Client {
     private static final String SERVER_ADDRESS = "localhost";
     private static final int PORT = 12345;
-    private static final String BASE_DIRECTORY = "/Users/veronika_snigur/Downloads/cw/course_work_parallel_computing";
 
     public static void main(String[] args) {
         try (Socket socket = new Socket(SERVER_ADDRESS, PORT);
              ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());
              ObjectInputStream input = new ObjectInputStream(socket.getInputStream())) {
 
-            // Remove user input for base directory
-            // output.writeObject(BASE_DIRECTORY);
-
-            InvertedIndex invertedIndex = (InvertedIndex) input.readObject();
-
             Scanner scanner = new Scanner(System.in);
-            System.out.print("Enter the search query: ");
-            String query = scanner.nextLine();
 
-            List<IndexEntry> result = invertedIndex.search(query);
+            do {
+                System.out.print("Enter the search query: ");
+                String query = scanner.nextLine();
 
-            System.out.println("Search results for '" + query + "':");
-            for (IndexEntry entry : result) {
-                System.out.println(entry);
-            }
+                output.writeObject(query);
+
+                // Read the server's response wrapper
+                SearchResultWrapper resultWrapper = (SearchResultWrapper) input.readObject();
+
+                System.out.println("Search results for '" + query + "':");
+                List<IndexEntry> result = resultWrapper.getResults();
+                for (IndexEntry entry : result) {
+                    System.out.println(entry);
+                }
+
+                System.out.print("Do you want to search for another word? (yes/no): ");
+            } while ("yes".equalsIgnoreCase(scanner.nextLine().trim()));
+
         } catch (Exception e) {
             e.printStackTrace();
         }
