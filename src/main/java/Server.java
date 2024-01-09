@@ -5,14 +5,18 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Scanner;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.ArrayList;
 
 public class Server {
     private static final int PORT = 12345;
     private static final String BASE_DIRECTORY = "/Users/veronika_snigur/Downloads/cw/course_work_parallel_computing";
-    private static final ExecutorService executorService = Executors.newCachedThreadPool();
+    private static final ExecutorService mainExecutorService = Executors.newCachedThreadPool();
 
     public static void main(String[] args) {
         try (ServerSocket serverSocket = new ServerSocket(PORT)) {
@@ -22,14 +26,24 @@ public class Server {
                 Socket clientSocket = serverSocket.accept();
                 System.out.println("Client connected: " + clientSocket.getInetAddress());
 
-                executorService.submit(() -> handleClient(clientSocket));
+                // Ask the user for the number of threads
+                System.out.print("Enter the number of threads for indexing: ");
+                int numThreads = Integer.parseInt(new Scanner(System.in).nextLine());
+
+                // Submit client handling with the given number of threads
+                mainExecutorService.submit(() -> handleClient(clientSocket, numThreads));
             }
         } catch (Exception e) {
             e.printStackTrace();
+        } finally {
+            mainExecutorService.shutdown();
         }
     }
 
-    private static void handleClient(Socket clientSocket) {
+    private static void handleClient(Socket clientSocket, int numThreads) {
+        // Create a fixed thread pool with the specified number of threads
+        ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
+
         try (ObjectInputStream input = new ObjectInputStream(clientSocket.getInputStream());
              ObjectOutputStream output = new ObjectOutputStream(clientSocket.getOutputStream())) {
 
@@ -49,8 +63,33 @@ public class Server {
                 System.out.println("Files are already indexed.");
             } else {
                 System.out.println("Indexing files...");
-                invertedIndex.buildIndex(absoluteFilePaths);
-                System.out.println("Files indexed successfully.");
+
+                // Divide the list of files among available threads
+                int filesPerThread = absoluteFilePaths.size() / numThreads;
+                List<Callable<Void>> indexingTasks = new ArrayList<>();
+
+                for (int i = 0; i < numThreads; i++) {
+                    int startIndex = i * filesPerThread;
+                    int endIndex = (i == numThreads - 1) ? absoluteFilePaths.size() : (i + 1) * filesPerThread;
+
+                    List<String> subList = absoluteFilePaths.subList(startIndex, endIndex);
+
+                    // Add an indexing task to the list
+                    indexingTasks.add(() -> {
+                        System.out.println("Indexing files in thread " + Thread.currentThread().getId() +
+                                " from index " + startIndex + " to " + (endIndex - 1));
+                        invertedIndex.buildIndex(subList);
+                        return null;
+                    });
+                }
+
+                try {
+                    // Invoke all tasks and wait for their completion
+                    executorService.invokeAll(indexingTasks);
+                    System.out.println("Files indexed successfully.");
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
             }
 
             while (true) {
@@ -67,7 +106,12 @@ public class Server {
                 List<IndexEntry> searchResults = invertedIndex.getSearchResults(query);
 
                 if (!searchResults.isEmpty()) {
-                    System.out.println("Files for query '" + query + "' found successfully.");
+                    System.out.println("Files for query '" + query + "' found successfully. Results:");
+
+                    // Print search results
+                    for (IndexEntry entry : searchResults) {
+                        System.out.println(entry.getFilePath());
+                    }
                 } else {
                     System.out.println("No files found for query '" + query + "'.");
                 }
@@ -80,6 +124,9 @@ public class Server {
             }
         } catch (Exception e) {
             e.printStackTrace();
+        } finally {
+            // Shutdown the executor service after client handling
+            executorService.shutdown();
         }
     }
 }

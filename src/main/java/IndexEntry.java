@@ -8,7 +8,9 @@ public class IndexEntry implements Serializable {
         this.filePath = filePath;
         this.position = position;
     }
-
+    public String getFilePath() {
+        return filePath;
+    }
     @Override
     public String toString() {
         return "IndexEntry{" +

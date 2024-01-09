@@ -11,6 +11,7 @@ public class InvertedIndex implements Serializable {
     private static final long serialVersionUID = 1L;
     private Map<String, List<IndexEntry>> invertedIndex;
     private boolean isIndexed;
+    private final Object lock = new Object(); // Lock for synchronization
 
     public InvertedIndex() {
         invertedIndex = new HashMap<>();
@@ -26,7 +27,10 @@ public class InvertedIndex implements Serializable {
                 while ((line = reader.readLine()) != null) {
                     String[] words = line.split("\\s+");
                     for (String word : words) {
-                        invertedIndex.computeIfAbsent(word, k -> new LinkedList<>()).add(new IndexEntry(filePath, position++));
+                        // Synchronize the access to invertedIndex
+                        synchronized (lock) {
+                            invertedIndex.computeIfAbsent(word, k -> new LinkedList<>()).add(new IndexEntry(filePath, position++));
+                        }
                     }
                 }
             } catch (IOException e) {
@@ -42,6 +46,7 @@ public class InvertedIndex implements Serializable {
     }
 
     public List<IndexEntry> getSearchResults(String query) {
+        // No need to synchronize here, as it's read-only
         return invertedIndex.getOrDefault(query, new LinkedList<>());
     }
 }
