@@ -89,6 +89,10 @@ public class Server {
                     // Invoke all tasks and wait for their completion
                     executorService.invokeAll(indexingTasks);
                     System.out.println("Files indexed successfully.");
+                    if(numThreads>1)
+                    {
+                        System.out.println("Total time for execution " + (System.currentTimeMillis() - startTime)+" milliseconds");
+                    }
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
