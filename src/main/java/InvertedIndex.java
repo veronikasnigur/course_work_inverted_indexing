@@ -11,13 +11,16 @@ public class InvertedIndex implements Serializable {
     private static final long serialVersionUID = 1L;
     private Map<String, List<IndexEntry>> invertedIndex;
     private boolean isIndexed;
-    private final Object lock = new Object(); // Lock for synchronization
+    private final Object lock = new Object(); // Замок для синхронізації
 
     public InvertedIndex() {
         invertedIndex = new HashMap<>();
         isIndexed = false;
     }
-
+    /**
+     * Побудова інвертованого індексу для заданого списку файлів.
+     * @param files Список шляхів до файлів, які слід індексувати.
+     */
     public void buildIndex(List<String> files) {
 //        long startTime = System.currentTimeMillis();
         for (String filePath : files) {
@@ -28,7 +31,7 @@ public class InvertedIndex implements Serializable {
                 while ((line = reader.readLine()) != null) {
                     String[] words = line.split("\\s+");
                     for (String word : words) {
-                        // Synchronize the access to invertedIndex
+                        // Синхронізація доступу до invertedIndex
                         synchronized (lock) {
                             invertedIndex.computeIfAbsent(word, k -> new LinkedList<>()).add(new IndexEntry(filePath, position++));
                         }
@@ -41,13 +44,20 @@ public class InvertedIndex implements Serializable {
 //        System.out.println("Time for execution with single thread: "+ (System.currentTimeMillis() - startTime)+" milliseconds\n");
         isIndexed = true;
     }
-
+    /**
+     * Перевірка, чи побудований індекс.
+     * @return True, якщо індекс побудований, false - в іншому випадку.
+     */
     public boolean isIndexed() {
         return isIndexed;
     }
-
+    /**
+     * Отримання результатів пошуку для заданого запиту.
+     * @param query Пошуковий запит.
+     * @return Список об'єктів IndexEntry, які представляють результати пошуку.
+     */
     public List<IndexEntry> getSearchResults(String query) {
-        // No need to synchronize here, as it's read-only
+        // Тут немає потреби синхронізації, оскільки це лише читання
         return invertedIndex.getOrDefault(query, new LinkedList<>());
     }
 }

@@ -9,12 +9,13 @@ import java.util.Scanner;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.ArrayList;
 
 public class Server {
+    //визначаємо порт для з'єднань
     private static final int PORT = 12345;
+    //визначимо основну директорію, яка використовуватиметься у цій програмі завжди*
     private static final String BASE_DIRECTORY = "/Users/veronika_snigur/Downloads/cw/course_work_parallel_computing";
     private static final ExecutorService mainExecutorService = Executors.newCachedThreadPool();
 
@@ -23,30 +24,32 @@ public class Server {
             System.out.println("Server is running...");
 
             while (true) {
+                // Приймаємо нового клієнта за виконання умови try
                 Socket clientSocket = serverSocket.accept();
                 System.out.println("Client connected: " + clientSocket.getInetAddress());
 
-                // Ask the user for the number of threads
+                // Запитуємо користувача про кількість потоків для індексації
                 System.out.print("Enter the number of threads for indexing: ");
                 int numThreads = Integer.parseInt(new Scanner(System.in).nextLine());
 
-                // Submit client handling with the given number of threads
+                // Відправляємо в обробку клієнта з вказаною кількістю потоків
                 mainExecutorService.submit(() -> handleClient(clientSocket, numThreads));
             }
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
+            // Завершуємо роботу основного пулу потоків при закритті сервера
             mainExecutorService.shutdown();
         }
     }
 
     private static void handleClient(Socket clientSocket, int numThreads) {
-        // Create a fixed thread pool with the specified number of threads
+        // Створює фіксований пул потоків з вказаною кількістю потоків
         ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
 
         try (ObjectInputStream input = new ObjectInputStream(clientSocket.getInputStream());
              ObjectOutputStream output = new ObjectOutputStream(clientSocket.getOutputStream())) {
-
+            // Шляхи до файлів для індексації
             List<String> filesToIndex = Arrays.asList(
                     "aclImdb/test/neg", "aclImdb/test/pos",
                     "aclImdb/train/neg", "aclImdb/train/pos", "aclImdb/train/unsup"
@@ -56,7 +59,7 @@ public class Server {
                     .flatMap(dir -> Arrays.stream(new File(dir).listFiles()))
                     .map(File::getAbsolutePath)
                     .collect(Collectors.toList());
-
+            // Створює об'єкт для інвертованого індексу
             InvertedIndex invertedIndex = new InvertedIndex();
 
             if (invertedIndex.isIndexed()) {
@@ -65,7 +68,7 @@ public class Server {
                 System.out.println("Indexing files...");
                 long startTime = System.currentTimeMillis();
 
-                // Divide the list of files among available threads
+                // Розподіляє список файлів між доступними потоками
                 int filesPerThread = absoluteFilePaths.size() / numThreads;
                 List<Callable<Void>> indexingTasks = new ArrayList<>();
 
@@ -75,7 +78,7 @@ public class Server {
 
                     List<String> subList = absoluteFilePaths.subList(startIndex, endIndex);
 
-                    // Add an indexing task to the list
+                    // Додає завдання індексації до списку
                     indexingTasks.add(() -> {
                         System.out.println("Indexing files in thread " + Thread.currentThread().getId() +
                                 " from index " + startIndex + " to " + (endIndex - 1));
@@ -86,7 +89,7 @@ public class Server {
                 }
 
                 try {
-                    // Invoke all tasks and wait for their completion
+                    // Викликає всі завдання і чекає на їх завершення
                     executorService.invokeAll(indexingTasks);
                     System.out.println("Files indexed successfully.");
                     if(numThreads>1)
@@ -99,22 +102,22 @@ public class Server {
             }
 
             while (true) {
-                // Read the search query from the client
+                // Читає пошуковий запит від клієнта
                 String query = (String) input.readObject();
 
-                // Check if the client wants to continue searching
+                // Перевіряє, чи клієнт бажає продовжувати пошук
                 if ("no".equalsIgnoreCase(query.trim())) {
                     System.out.println("Client opted out of further search. Closing connection.");
-                    break;  // Exit the loop and close the connection
+                    break;  // Виходить із циклу та закриває з'єднання
                 }
 
-                // Get the search results using the provided search query
+                // Отримує результати пошуку за вказаним запитом
                 List<IndexEntry> searchResults = invertedIndex.getSearchResults(query);
 
                 if (!searchResults.isEmpty()) {
                     System.out.println("Files for query '" + query + "' found successfully. Results are sent to server:");
 
-                    // Print search results
+                    // Виводить результати пошуку
                     for (IndexEntry entry : searchResults) {
                         //потрібно було для перевірки правильності індексації, щоб відслідкувати знайдені співпадіння
                         // System.out.println(entry.getFilePath());
@@ -123,16 +126,16 @@ public class Server {
                     System.out.println("No files found for query '" + query + "'.");
                 }
 
-                // Wrap the results in a SearchResultWrapper
+                // Обгортає результати в SearchResultWrapper та відправляє клієнту
                 SearchResultWrapper resultWrapper = new SearchResultWrapper(searchResults);
 
                 output.writeObject(resultWrapper);
-                output.flush(); // Flush the output stream
+                output.flush(); // Очищує вихідний потік
             }
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
-            // Shutdown the executor service after client handling
+            // Завершує роботу пулу потоків після обробки клієнта
             executorService.shutdown();
         }
     }
